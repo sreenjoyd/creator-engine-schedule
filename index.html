@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Active Shows Overview</title>
+<script src="theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
@@ -369,6 +370,95 @@
   @keyframes panel-in{from{transform:translateX(36px);opacity:0;}to{transform:none;opacity:1;}}
   @keyframes fade-in{from{opacity:0;}to{opacity:1;}}
 
+  /* ---- Palettes ----
+     Each palette defines light (--p-*) and dark (--pd-*) accent, schedule and
+     tracker colors. Swatches in the picker carry data-palette too, so they
+     preview their own colors. Default is Aurora. */
+  :root{
+    --p-accent:#0E9F8E;  --p-schedule:#0F7C8A;  --p-tracker:#0F2A33;
+    --pd-accent:#2DD4BF; --pd-schedule:#18A3AE; --pd-tracker:#17323A;
+  }
+  [data-palette="aurora"]{
+    --p-accent:#0E9F8E;  --p-schedule:#0F7C8A;  --p-tracker:#0F2A33;
+    --pd-accent:#2DD4BF; --pd-schedule:#18A3AE; --pd-tracker:#17323A;
+  }
+  [data-palette="violet"]{
+    --p-accent:#6C5CE7;  --p-schedule:#2F6FED;  --p-tracker:#141A26;
+    --pd-accent:#8E7CFF; --pd-schedule:#4C82F7; --pd-tracker:#232838;
+  }
+  [data-palette="sunset"]{
+    --p-accent:#E8590C;  --p-schedule:#D9480F;  --p-tracker:#2A1A14;
+    --pd-accent:#FF8A5B; --pd-schedule:#F26A3D; --pd-tracker:#3A2218;
+  }
+  [data-palette="forest"]{
+    --p-accent:#12935B;  --p-schedule:#15803D;  --p-tracker:#10241A;
+    --pd-accent:#34D399; --pd-schedule:#1FA05A; --pd-tracker:#173026;
+  }
+  [data-palette="rose"]{
+    --p-accent:#D6246E;  --p-schedule:#B5175B;  --p-tracker:#2A1420;
+    --pd-accent:#FF5CA8; --pd-schedule:#E0408B; --pd-tracker:#3A1B2A;
+  }
+  [data-palette="graphite"]{
+    --p-accent:#475569;  --p-schedule:#334155;  --p-tracker:#111827;
+    --pd-accent:#94A3B8; --pd-schedule:#475569; --pd-tracker:#232838;
+  }
+  :root{--accent:var(--p-accent);--schedule-live:var(--p-schedule);--tracker-live:var(--p-tracker);}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){--accent:var(--pd-accent);--schedule-live:var(--pd-schedule);--tracker-live:var(--pd-tracker);}
+  }
+  :root[data-theme="dark"]{--accent:var(--pd-accent);--schedule-live:var(--pd-schedule);--tracker-live:var(--pd-tracker);}
+
+  /* ---- Theme picker ---- */
+  .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .theme-picker{position:relative;}
+  #themeToggle{
+    display:flex;align-items:center;gap:7px;background:var(--surface);
+    border:1px solid var(--line);color:var(--ink);border-radius:9px;
+    padding:9px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
+    cursor:pointer;box-shadow:var(--shadow);
+    transition:transform .2s var(--ease-out), border-color .2s, box-shadow .2s;
+  }
+  #themeToggle:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow-lift);}
+  #themeToggle:active{transform:scale(.97);}
+  #themeToggle[aria-expanded="true"]{border-color:var(--accent);}
+  .theme-panel{
+    position:absolute;right:0;top:calc(100% + 10px);z-index:70;width:280px;
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow-lift);padding:16px;animation:pop .22s var(--ease-out);
+    transform-origin:top right;
+  }
+  .tp-label{
+    margin:0 0 9px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted-2);
+  }
+  .tp-label ~ .tp-label{margin-top:16px;}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .swatch{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:var(--surface-2);border:1.5px solid transparent;border-radius:12px;
+    padding:10px 4px 8px;font-family:inherit;font-size:11.5px;font-weight:600;
+    color:var(--muted);cursor:pointer;
+    transition:transform .2s var(--ease-out), border-color .2s, color .2s, background .2s;
+  }
+  .swatch:hover{transform:translateY(-2px);color:var(--ink);}
+  .swatch .dot{
+    width:28px;height:28px;border-radius:50%;
+    background:linear-gradient(135deg, var(--p-accent), var(--p-schedule));
+    box-shadow:0 4px 10px -4px var(--p-accent);
+    transition:transform .25s var(--ease-out);
+  }
+  .swatch:hover .dot{transform:scale(1.1);}
+  .swatch[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);background:var(--surface);}
+  .seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;}
+  .seg button{
+    flex:1;border:none;background:none;border-radius:8px;padding:7px 0;
+    font-family:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;
+    transition:background .2s, color .2s, box-shadow .2s;
+  }
+  .seg button:hover{color:var(--ink);}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.96);}to{opacity:1;transform:none;}}
+
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto;}
     *, *::before, *::after{animation:none!important;transition:none!important;}
@@ -389,7 +479,29 @@
       <h1 class="page-title">Active Shows Overview</h1>
       <p class="page-sub">Manage schedules and trackers across all creative producers.</p>
     </div>
-    <button id="adminToggle" type="button">✎ Manage pods</button>
+    <div class="header-actions">
+      <div class="theme-picker">
+        <button id="themeToggle" type="button" aria-haspopup="true" aria-expanded="false">◐ Theme</button>
+        <div class="theme-panel" id="themePanel" hidden>
+          <p class="tp-label">Palette</p>
+          <div class="swatches">
+            <button type="button" class="swatch" data-palette="aurora" aria-label="Aurora palette"><span class="dot"></span>Aurora</button>
+            <button type="button" class="swatch" data-palette="violet" aria-label="Violet palette"><span class="dot"></span>Violet</button>
+            <button type="button" class="swatch" data-palette="sunset" aria-label="Sunset palette"><span class="dot"></span>Sunset</button>
+            <button type="button" class="swatch" data-palette="forest" aria-label="Forest palette"><span class="dot"></span>Forest</button>
+            <button type="button" class="swatch" data-palette="rose" aria-label="Rose palette"><span class="dot"></span>Rose</button>
+            <button type="button" class="swatch" data-palette="graphite" aria-label="Graphite palette"><span class="dot"></span>Graphite</button>
+          </div>
+          <p class="tp-label">Mode</p>
+          <div class="seg" role="group" aria-label="Color mode">
+            <button type="button" data-mode="auto">Auto</button>
+            <button type="button" data-mode="light">Light</button>
+            <button type="button" data-mode="dark">Dark</button>
+          </div>
+        </div>
+      </div>
+      <button id="adminToggle" type="button">✎ Manage pods</button>
+    </div>
   </div>
 
   <div class="stats-row">
