@@ -98,8 +98,8 @@
     state.forEach(function(s){
       if(isActiveShow(s)){ producers[s.producer] = true; activeShowCount++; }
     });
-    document.getElementById('statProducers').textContent = Object.keys(producers).length;
-    document.getElementById('statShows').textContent = activeShowCount;
+    setStat('statProducers', Object.keys(producers).length);
+    setStat('statShows', activeShowCount);
 
     PRODUCER_ORDER.forEach(function(producer){
       var shows = state.filter(function(s){ return s.producer === producer; })
@@ -120,6 +120,33 @@
         '</div>';
       main.appendChild(section);
     });
+
+    // Entrance animation plays on the first render only, so live Firestore
+    // updates don't make every card flash in again.
+    if(state.length && !document.body.classList.contains('ready')){
+      document.body.classList.add('intro');
+      setTimeout(function(){
+        document.body.classList.remove('intro');
+        document.body.classList.add('ready');
+      }, 1600);
+    }
+  }
+
+  function setStat(id, value){
+    var el = document.getElementById(id);
+    var from = parseInt(el.textContent, 10) || 0;
+    if(from === value || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      el.textContent = value;
+      return;
+    }
+    var start = null, duration = 650;
+    function tick(ts){
+      if(start === null) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      el.textContent = Math.round(from + (value - from) * (1 - Math.pow(1 - p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
   }
 
   function openAdmin(focusId, focusField){
