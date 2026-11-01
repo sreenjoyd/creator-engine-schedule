@@ -3,8 +3,13 @@
    No claude.ai dependency — deploy this folder anywhere (e.g. Vercel). */
 
 (function(){
-  var PRODUCER_ORDER = ["Pranav","Newel","Nilaj","Rahul"];
+  // "Limited Series" is a pod, not a producer: its projects carry their own
+  // creative producer name (often a freelancer) in the `cp` field.
+  var LIMITED = "Limited Series";
+  var PRODUCER_ORDER = ["Pranav","Newel","Nilaj","Rahul",LIMITED];
   var PRODUCER_VAR = {Pranav:"--p-pranav",Newel:"--p-newel",Nilaj:"--p-nilaj",Rahul:"--p-rahul"};
+  PRODUCER_VAR[LIMITED] = "--p-limited";
+  var CP_SUGGESTIONS = ["Pranav","Newel","Nilaj","Rahul"];
   var state = [];
   var db = null;
   var showsCol = null;
@@ -63,6 +68,19 @@
     '</div>';
   }
 
+  function podName(producer){
+    return producer === LIMITED ? LIMITED : producer + "'s Pod";
+  }
+
+  function cpRow(show){
+    var name = (show.cp || '').trim();
+    return '<div class="cp-row" data-show="' + show.id + '" data-role="cp" title="Click to set the creative producer">' +
+      '<span class="cp-avatar">' + (name ? escapeHtml(initials(name)) : '?') + '</span>' +
+      '<span class="cp-text"><span class="cp-label">Creative producer</span>' +
+      '<span class="cp-name' + (name ? '' : ' unassigned') + '">' + (name ? escapeHtml(name) : 'Not assigned yet') + '</span></span>' +
+    '</div>';
+  }
+
   function buildCard(show){
     var mediaStyle = show.image ? ' style="background-image:url(' + show.image + ')"' : '';
     var titleAttrs = editing ? ' contenteditable="true" spellcheck="false"' : '';
@@ -76,6 +94,7 @@
         '</div>' +
       '</div>' +
       '<div class="card-body">' +
+        (show.producer === LIMITED ? cpRow(show) : '') +
         '<div class="doc-label">Project documents</div>' +
         docRow(show, 'tracker') +
         docRow(show, 'schedule') +
@@ -96,7 +115,10 @@
     var producers = {};
     var activeShowCount = 0;
     state.forEach(function(s){
-      if(isActiveShow(s)){ producers[s.producer] = true; activeShowCount++; }
+      if(isActiveShow(s)){
+        if(s.producer !== LIMITED) producers[s.producer] = true;
+        activeShowCount++;
+      }
     });
     setStat('statProducers', Object.keys(producers).length);
     setStat('statShows', activeShowCount);
@@ -111,7 +133,7 @@
       section.innerHTML =
         '<div class="producer-head">' +
           '<div class="avatar" style="background:var(' + PRODUCER_VAR[producer] + ')">' + producer[0] + '</div>' +
-          '<div><h2>' + producer + "'s Pod</h2><p class=\"sub\">" + activeCount + ' Active Show' + (activeCount!==1?'s':'') + '</p></div>' +
+          '<div><h2>' + podName(producer) + "</h2><p class=\"sub\">" + activeCount + ' Active Show' + (activeCount!==1?'s':'') + '</p></div>' +
         '</div>' +
         '<hr class="producer-divider">' +
         '<div class="pod-grid">' +
@@ -158,7 +180,8 @@
     renderMain();
     renderAdminList();
     if(focusId){
-      var target = document.getElementById((focusField === 'schedule' ? 's-' : 't-') + focusId);
+      var prefix = focusField === 'schedule' ? 's-' : focusField === 'cp' ? 'c-' : 't-';
+      var target = document.getElementById(prefix + focusId);
       if(target){
         setTimeout(function(){ target.scrollIntoView({block:'center'}); target.focus(); }, 50);
       }
@@ -182,12 +205,17 @@
   function renderAdminList(){
     var list = document.getElementById('adminList');
     list.innerHTML = '';
+    renderCpSuggestions();
     state.forEach(function(show){
       var row = document.createElement('div');
       row.className = 'admin-row';
       row.id = 'admin-row-' + show.id;
       row.innerHTML =
         '<div class="admin-row-title"><span class="avatar" style="width:20px;height:20px;font-size:9px;background:var(' + PRODUCER_VAR[show.producer] + ')">' + show.producer[0] + '</span>' + escapeHtml(show.name) + '</div>' +
+        (show.producer === LIMITED
+          ? '<label for="c-' + show.id + '">Creative producer</label>' +
+            '<input id="c-' + show.id + '" type="text" list="cpSuggestions" autocomplete="off" placeholder="Pick or type a name (e.g. a freelancer)" value="' + escapeHtml(show.cp || '') + '">'
+          : '') +
         '<label for="t-' + show.id + '">Tracker link</label>' +
         '<input id="t-' + show.id + '" type="url" placeholder="Paste tracker link" value="' + (show.tracker || '') + '">' +
         '<label for="s-' + show.id + '">Schedule link</label>' +
@@ -195,6 +223,22 @@
       list.appendChild(row);
     });
     document.getElementById('saveStatus').textContent = '';
+  }
+
+  // Suggestions for the creative producer box: the four in-house CPs plus any
+  // freelancer names already saved on Limited Series projects.
+  function renderCpSuggestions(){
+    var dl = document.getElementById('cpSuggestions');
+    if(!dl){
+      dl = document.createElement('datalist');
+      dl.id = 'cpSuggestions';
+      document.body.appendChild(dl);
+    }
+    var seen = {}, names = [];
+    CP_SUGGESTIONS.concat(state.map(function(s){ return (s.cp || '').trim(); })).forEach(function(n){
+      if(n && !seen[n.toLowerCase()]){ seen[n.toLowerCase()] = true; names.push(n); }
+    });
+    dl.innerHTML = names.map(function(n){ return '<option value="' + escapeHtml(n) + '">'; }).join('');
   }
 
   async function saveLinks(){
@@ -205,10 +249,14 @@
     state.forEach(function(show){
       var t = document.getElementById('t-' + show.id);
       var s = document.getElementById('s-' + show.id);
+      var c = document.getElementById('c-' + show.id);
       var newTracker = t ? t.value.trim() : show.tracker;
       var newSchedule = s ? s.value.trim() : show.schedule;
-      if(newTracker !== (show.tracker || '') || newSchedule !== (show.schedule || '')){
-        batch.update(showsCol.doc(show.id), { tracker: newTracker, schedule: newSchedule });
+      var newCp = c ? c.value.replace(/\s+/g, ' ').trim() : (show.cp || '');
+      if(newTracker !== (show.tracker || '') || newSchedule !== (show.schedule || '') || newCp !== (show.cp || '')){
+        var patch = { tracker: newTracker, schedule: newSchedule };
+        if(c) patch.cp = newCp;
+        batch.update(showsCol.doc(show.id), patch);
         changed++;
       }
     });
@@ -262,12 +310,14 @@
   async function addShow(producer){
     var existing = state.filter(function(s){ return s.producer === producer; });
     var maxOrder = existing.reduce(function(m,s){ return Math.max(m, s.order||0); }, 0);
-    var id = randomId(producer.toLowerCase());
-    await showsCol.doc(id).set({
+    var id = randomId(producer.toLowerCase().replace(/\W+/g, '-'));
+    var data = {
       name: 'New Project', producer: producer, type: 'main',
       tracker: '', schedule: '', image: null, logo: null,
       order: maxOrder + 1
-    });
+    };
+    if(producer === LIMITED) data.cp = '';
+    await showsCol.doc(id).set(data);
   }
 
   async function renameShow(id, name){
@@ -285,8 +335,10 @@
       var logoEl = e.target.closest('[data-role="logo"]');
       var docEl = e.target.closest('.doc-row');
       var addEl = e.target.closest('.add-card');
+      var cpEl = e.target.closest('[data-role="cp"]');
 
       if(titleEl && titleEl.isContentEditable) return;
+      if(cpEl){ openAdmin(cpEl.dataset.show, 'cp'); return; }
       if(addEl){ addShow(addEl.dataset.addFor); return; }
       if(editing && (mediaEl || logoEl)){
         var target = logoEl || mediaEl;
