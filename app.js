@@ -86,7 +86,10 @@
   function buildCard(show){
     var mediaStyle = show.image ? ' style="background-image:url(' + show.image + ')"' : '';
     var titleAttrs = editing ? ' contenteditable="true" spellcheck="false"' : '';
-    return '<div class="card" data-show-card="' + show.id + '">' +
+    var removeBtn = editing
+      ? '<button type="button" class="card-remove" data-remove-show="' + show.id + '" aria-label="Remove ' + escapeHtml(show.name) + '" title="Remove this show">×</button>'
+      : '';
+    return '<div class="card" data-show-card="' + show.id + '">' + removeBtn +
       '<div class="card-media" data-show="' + show.id + '" data-role="image"' + mediaStyle + '>' +
         (show.type === 'shorts' ? '<span class="shorts-pill">Shorts</span>' : '') +
         (show.image ? '' : '<div class="media-placeholder"><span>🎬</span><span>No image yet</span></div>') +
@@ -351,6 +354,18 @@
     await showsCol.doc(id).set(data);
   }
 
+  async function removeShow(id){
+    var show = findShow(id);
+    if(!show) return;
+    var label = show.name || 'this show';
+    if(!window.confirm('Remove "' + label + '" from the dashboard?\n\nIt will be deleted from the database and cannot be undone.')) return;
+    try{
+      await showsCol.doc(id).delete();
+    }catch(e){
+      alert('Could not remove "' + label + '": ' + e.message);
+    }
+  }
+
   async function renameShow(id, name){
     await showsCol.doc(id).update({ name: name });
   }
@@ -376,6 +391,11 @@
 
       if(titleEl && titleEl.isContentEditable) return;
       if(cpEl){ openAdmin(cpEl.dataset.show, 'cp'); return; }
+      var removeEl = e.target.closest('[data-remove-show]');
+      if(removeEl){
+        removeShow(removeEl.dataset.removeShow);
+        return;
+      }
       var cancelAddEl = e.target.closest('[data-cancel-add]');
       var confirmAddEl = e.target.closest('[data-confirm-add]');
       if(addEl){
