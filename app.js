@@ -206,21 +206,35 @@
     var list = document.getElementById('adminList');
     list.innerHTML = '';
     renderCpSuggestions();
-    state.forEach(function(show){
-      var row = document.createElement('div');
-      row.className = 'admin-row';
-      row.id = 'admin-row-' + show.id;
-      row.innerHTML =
-        '<div class="admin-row-title"><span class="avatar" style="width:20px;height:20px;font-size:9px;background:var(' + PRODUCER_VAR[show.producer] + ')">' + show.producer[0] + '</span>' + escapeHtml(show.name) + '</div>' +
-        (show.producer === LIMITED
-          ? '<label for="c-' + show.id + '">Creative producer</label>' +
-            '<input id="c-' + show.id + '" type="text" list="cpSuggestions" autocomplete="off" placeholder="Pick or type a name (e.g. a freelancer)" value="' + escapeHtml(show.cp || '') + '">'
-          : '') +
-        '<label for="t-' + show.id + '">Tracker link</label>' +
-        '<input id="t-' + show.id + '" type="url" placeholder="Paste tracker link" value="' + (show.tracker || '') + '">' +
-        '<label for="s-' + show.id + '">Schedule link</label>' +
-        '<input id="s-' + show.id + '" type="url" placeholder="Paste schedule link" value="' + (show.schedule || '') + '">';
-      list.appendChild(row);
+    PRODUCER_ORDER.forEach(function(producer){
+      var shows = state.filter(function(s){ return s.producer === producer; })
+        .sort(function(a,b){ return (a.order||0) - (b.order||0); });
+      if(!shows.length) return;
+      var head = document.createElement('div');
+      head.className = 'admin-pod-head';
+      head.innerHTML = '<span class="avatar" style="width:18px;height:18px;font-size:8px;background:var(' + PRODUCER_VAR[producer] + ')">' + escapeHtml(producer[0]) + '</span>' + escapeHtml(podName(producer));
+      list.appendChild(head);
+      shows.forEach(function(show){
+        var row = document.createElement('div');
+        row.className = 'admin-row';
+        row.id = 'admin-row-' + show.id;
+        row.innerHTML =
+          '<label for="n-' + show.id + '">Project name</label>' +
+          '<input id="n-' + show.id + '" type="text" value="' + escapeHtml(show.name) + '">' +
+          '<div class="admin-actions">' +
+            '<button type="button" class="mini-btn" data-act="image" data-show="' + show.id + '">Change banner image</button>' +
+            '<button type="button" class="mini-btn" data-act="logo" data-show="' + show.id + '">Change logo</button>' +
+          '</div>' +
+          (show.producer === LIMITED
+            ? '<label for="c-' + show.id + '">Creative producer</label>' +
+              '<input id="c-' + show.id + '" type="text" list="cpSuggestions" autocomplete="off" placeholder="Pick or type a name (e.g. a freelancer)" value="' + escapeHtml(show.cp || '') + '">'
+            : '') +
+          '<label for="t-' + show.id + '">Tracker link</label>' +
+          '<input id="t-' + show.id + '" type="url" placeholder="Paste tracker link" value="' + escapeHtml(show.tracker || '') + '">' +
+          '<label for="s-' + show.id + '">Schedule link</label>' +
+          '<input id="s-' + show.id + '" type="url" placeholder="Paste schedule link" value="' + escapeHtml(show.schedule || '') + '">';
+        list.appendChild(row);
+      });
     });
     document.getElementById('saveStatus').textContent = '';
   }
@@ -250,12 +264,15 @@
       var t = document.getElementById('t-' + show.id);
       var s = document.getElementById('s-' + show.id);
       var c = document.getElementById('c-' + show.id);
+      var n = document.getElementById('n-' + show.id);
       var newTracker = t ? t.value.trim() : show.tracker;
       var newSchedule = s ? s.value.trim() : show.schedule;
       var newCp = c ? c.value.replace(/\s+/g, ' ').trim() : (show.cp || '');
-      if(newTracker !== (show.tracker || '') || newSchedule !== (show.schedule || '') || newCp !== (show.cp || '')){
+      var newName = n ? (n.value.replace(/\s+/g, ' ').trim() || show.name) : show.name;
+      if(newTracker !== (show.tracker || '') || newSchedule !== (show.schedule || '') || newCp !== (show.cp || '') || newName !== show.name){
         var patch = { tracker: newTracker, schedule: newSchedule };
         if(c) patch.cp = newCp;
+        if(n) patch.name = newName;
         batch.update(showsCol.doc(show.id), patch);
         changed++;
       }
@@ -328,6 +345,12 @@
     document.getElementById('adminToggle').addEventListener('click', toggleAdmin);
     document.getElementById('closeAdmin').addEventListener('click', closeAdmin);
     document.getElementById('saveLinks').addEventListener('click', saveLinks);
+
+    document.getElementById('adminList').addEventListener('click', function(e){
+      var b = e.target.closest('[data-act]');
+      if(!b) return;
+      requestImage(b.dataset.show, b.dataset.act === 'logo' ? 'logo' : 'image');
+    });
 
     document.getElementById('main').addEventListener('click', function(e){
       var titleEl = e.target.closest('[data-role="title"]');
