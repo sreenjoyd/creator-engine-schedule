@@ -14,6 +14,8 @@
   var db = null;
   var showsCol = null;
   var editing = false;
+  var addingFor = null;   // pod whose 'Add a show' form is open
+  var addingName = '';    // name typed so far in that form
 
   var ICONS = {
     tracker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
@@ -103,6 +105,16 @@
   }
 
   function buildAddCard(producer){
+    if(addingFor === producer){
+      return '<div class="card add-card add-card-form">' +
+        '<button type="button" class="add-cancel" data-cancel-add="1" aria-label="Cancel adding a show" title="Cancel">×</button>' +
+        '<label class="add-form-label" for="add-name">New show name</label>' +
+        '<input id="add-name" class="add-name" type="text" data-add-name="1" placeholder="e.g. Mark Wiens Documentary" autocomplete="off" value="' + escapeHtml(addingName) + '">' +
+        '<div class="add-form-actions">' +
+          '<button type="button" class="mini-btn add-confirm" data-confirm-add="' + escapeHtml(producer) + '">Add show</button>' +
+        '</div>' +
+      '</div>';
+    }
     return '<button type="button" class="card add-card" data-add-for="' + producer + '">' +
       '<span class="add-card-icon">' + ICONS.plus + '</span>' +
       '<span class="add-card-label">Add a show</span>' +
@@ -190,6 +202,8 @@
 
   function closeAdmin(){
     editing = false;
+    addingFor = null;
+    addingName = '';
     document.body.classList.remove('editing');
     document.getElementById('adminToggle').classList.remove('is-active');
     document.getElementById('adminScrim').hidden = true;
@@ -324,12 +338,12 @@
     return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
   }
 
-  async function addShow(producer){
+  async function addShow(producer, name){
     var existing = state.filter(function(s){ return s.producer === producer; });
     var maxOrder = existing.reduce(function(m,s){ return Math.max(m, s.order||0); }, 0);
     var id = randomId(producer.toLowerCase().replace(/\W+/g, '-'));
     var data = {
-      name: 'New Project', producer: producer, type: 'main',
+      name: name, producer: producer, type: 'main',
       tracker: '', schedule: '', image: null, logo: null,
       order: maxOrder + 1
     };
@@ -362,7 +376,30 @@
 
       if(titleEl && titleEl.isContentEditable) return;
       if(cpEl){ openAdmin(cpEl.dataset.show, 'cp'); return; }
-      if(addEl){ addShow(addEl.dataset.addFor); return; }
+      var cancelAddEl = e.target.closest('[data-cancel-add]');
+      var confirmAddEl = e.target.closest('[data-confirm-add]');
+      if(addEl){
+        addingFor = addEl.dataset.addFor;
+        addingName = '';
+        renderMain();
+        var nameInput = document.getElementById('add-name');
+        if(nameInput) nameInput.focus();
+        return;
+      }
+      if(cancelAddEl){ addingFor = null; addingName = ''; renderMain(); return; }
+      if(confirmAddEl){
+        var newName = addingName.replace(/\s+/g, ' ').trim();
+        if(!newName){
+          var emptyInput = document.getElementById('add-name');
+          if(emptyInput) emptyInput.focus();
+          return;
+        }
+        var producer = confirmAddEl.dataset.confirmAdd;
+        addingFor = null; addingName = '';
+        renderMain();
+        addShow(producer, newName);
+        return;
+      }
       if(editing && (mediaEl || logoEl)){
         var target = logoEl || mediaEl;
         requestImage(target.dataset.show, logoEl ? 'logo' : 'image');
@@ -389,7 +426,20 @@
       }
     });
 
+    document.getElementById('main').addEventListener('input', function(e){
+      if(e.target.matches && e.target.matches('[data-add-name]')) addingName = e.target.value;
+    });
+
     document.getElementById('main').addEventListener('keydown', function(e){
+      if(e.key === 'Enter' && e.target.matches && e.target.matches('[data-add-name]')){
+        e.preventDefault();
+        var btn = document.querySelector('[data-confirm-add]');
+        if(btn) btn.click();
+        return;
+      }
+      if(e.key === 'Escape' && e.target.matches && e.target.matches('[data-add-name]')){
+        addingFor = null; addingName = ''; renderMain(); return;
+      }
       var titleEl = e.target.closest && e.target.closest('[data-role="title"]');
       if(titleEl && titleEl.isContentEditable && e.key === 'Enter'){
         e.preventDefault();
