@@ -238,6 +238,10 @@
     border:1px solid var(--line);background:var(--surface);color:var(--ink);
   }
   .admin-row input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .admin-pod-head{display:flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:6px 0 -4px;}
+  .admin-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .mini-btn{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .mini-btn:hover{border-color:var(--accent);}
   .save-btn{
     margin-top:16px;background:var(--accent);color:#fff;border:none;border-radius:10px;
     padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
@@ -533,7 +537,7 @@
 <div class="scrim" id="adminScrim" hidden></div>
 <div class="admin-panel" id="adminPanel" hidden>
   <div class="admin-head"><h3>Manage pods</h3><button id="closeAdmin" type="button">×</button></div>
-  <p class="admin-note">Paste tracker or schedule links here as they're made. To change a show's image or logo, or rename it, click directly on its tile on the main page while this panel is open. Changes sync live to everyone viewing this page, anywhere.</p>
+  <p class="admin-note">Shows are grouped by pod. Change a show's name, banner image, logo, links or creative producer here, then press Save changes.</p>
   <div class="admin-list" id="adminList"></div>
   <button class="save-btn" id="saveLinks" type="button">Save changes</button>
   <p class="save-status" id="saveStatus"></p>
