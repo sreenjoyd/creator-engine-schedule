@@ -259,6 +259,10 @@
   .add-card-icon{width:26px;height:26px;}
   .add-card-icon svg{width:100%;height:100%;}
   .add-card-label{font-size:12.5px;font-weight:600;}
+  .editing .card{position:relative;}
+  .card-remove{display:none;position:absolute;top:8px;right:8px;z-index:7;width:28px;height:28px;border-radius:50%;border:none;background:rgba(8,8,12,.7);color:#fff;font-size:18px;line-height:1;cursor:pointer;padding:0;align-items:center;justify-content:center;}
+  .card-remove:hover{background:#D92D20;}
+  .editing .card-remove{display:flex;}
   .add-card-form{position:relative;align-items:stretch;justify-content:center;gap:8px;padding:14px;cursor:default;}
   .add-card-form:hover{transform:none;}
   .add-cancel{position:absolute;top:6px;right:8px;background:none;border:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px;}
